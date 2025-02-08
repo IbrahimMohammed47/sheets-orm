@@ -1,4 +1,4 @@
-# Google Sheets ORM 🚀
+# Google Sheets ORM 🧩
 **A serverless, NoSQL-like ORM that turns Google Sheets into a database—zero hosting, full type safety.**  
 
 ⚠️ **Warning:** This project is not production-ready (yet)! <br>
@@ -89,12 +89,12 @@ npm install google-sheets-orm
 - **🔍 No complex queries** – Lacks advanced filtering and capabilities like joins and grouping.
 
 ## Where Can This Be Useful? (Example Use Cases 💡)
-- **🏥 Clinic Management** – Your client doctors can store their patient records securely in their Google Drive.
-- **📊 Personal Finance Tracking** – Users manage financial records in structured sheets.
-- **🏋️ Gym logger** – Trainees log and track their workout routines.
-- **🎓 Educational Tools** – Teachers organize student records and grades collaboratively.
-- **📑 Accounting & Expense Management** – Track invoices, expenses, and financial reports seamlessly in Google Sheets.
+- 🛠️ Prototyping – If you want a free cloud database to build your prototype/MVP on.
+- 📒 Hobby & Side Projects – Perfect for hobbyists who need a lightweight, easy-to-use storage solution.
+- 🔒 User-Isolated Applications – Each user owns and controls their own data, eliminating concerns about centralized database access.
+- 📊 Simple Tracking Systems – Great for tracking progress, habits, workouts, or any personal data.
+- 🛠️ Low-Maintenance Internal Tools – Ideal for lightweight admin panels, automation scripts, or personal dashboards that don't require a dedicated database.
+- 🔗 Google Sheets as a Business Hub – If your business already relies on Google Sheets for workflows, this tool lets you turn spreadsheets into a backend, keeping everything in sync without minimal infrastructure.
 
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
