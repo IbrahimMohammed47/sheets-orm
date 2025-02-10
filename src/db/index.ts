@@ -15,7 +15,7 @@ export class ClientSheetDB {
         this.spreadsheetId = args.spreadsheetId;
     }
 
-    getModel<const T extends readonly SheetField<any>[]>(schema: T) {
+    getModel<const T extends readonly SheetField[]>(schema: T) {
         return new Model(schema, this.client, this.spreadsheetId);
     }
 }

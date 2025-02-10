@@ -2,7 +2,7 @@
 // import { generateAuthUrl, authUrlCallbackMiddleware } from "./auth"
 
 import { createOAuthClient } from "./auth";
-import { SheetCols, SheetTypes } from "./schema";
+import { SheetCols, SheetFieldKinds } from "./schema";
 import { ClientSheetDB } from "./db";
 import * as dotenv from 'dotenv'
 dotenv.config()
@@ -29,11 +29,11 @@ dotenv.config()
 
 
 const userSchema = [
-    { name: "email", validator: SheetTypes.STRING, mapsTo: SheetCols.D },
-    { name: "name", validator: SheetTypes.STRING, mapsTo: SheetCols.E },
-    { name: "age", validator: SheetTypes.NUMBER, mapsTo: SheetCols.F },
-    { name: "birthDate", validator: SheetTypes.DATETIME, mapsTo: SheetCols.G },
-    { name: "isMarried", validator: SheetTypes.BOOLEAN, mapsTo: SheetCols.H },
+    { name: "email", kind: SheetFieldKinds.STRING, mapsTo: SheetCols.D },
+    { name: "name", kind: SheetFieldKinds.STRING, mapsTo: SheetCols.E },
+    { name: "age", kind: SheetFieldKinds.NUMBER, mapsTo: SheetCols.F },
+    { name: "birthDate", kind: SheetFieldKinds.DATETIME, mapsTo: SheetCols.G },
+    { name: "isMarried", kind: SheetFieldKinds.BOOLEAN, mapsTo: SheetCols.H },
 ] as const;
 
 
@@ -61,13 +61,17 @@ const userSchema = [
     // const res = await clientUserModel.getOne("8")
     // console.log(res)
 
-    await clientUserModel.deleteOne("1")
+    // await clientUserModel.deleteOne("1")
 
     await clientUserModel.findMany({
-        AND: [
-            { birthDate: {} },
-            { isMarried: {} },
-            {}
-        ]
+        filters: {
+            AND: [
+                { birthDate: { after: new Date() } },
+                { isMarried: { eq: true } },
+            ]
+        },
+        selections: ["age", "email"],
+        limit: 12,
+        offset: 20
     })
 })()

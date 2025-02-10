@@ -1,6 +1,7 @@
-import z, { ZodType } from 'zod';
+import z from 'zod';
 import google, { google as googleClient } from "googleapis"
 import { jsDateToSheetDateStr, sheetBoolToJSBool, sheetDateStrToJsDate } from '../utils';
+import { parseQuery, FindManyArgs } from '../db/query-parser';
 
 export const SheetCols = {
     A: 'A',
@@ -32,77 +33,57 @@ export const SheetCols = {
 } as const
 const SheetColsArr = Object.values(SheetCols)
 
-export const SheetTypes = {
-    STRING: z.string(),
-    NUMBER: z.number().or(z.coerce.number()),
-    DATETIME: z.date(),
-    BOOLEAN: z.boolean()
+
+export const SheetFieldKinds = {
+    STRING: 'STRING',
+    NUMBER: 'NUMBER',
+    DATETIME: 'DATETIME',
+    BOOLEAN: 'BOOLEAN'
 } as const
 
-export type SheetField<T extends ZodType<any, any>> = {
+const sheetFieldKindToValidator = {
+    [SheetFieldKinds.STRING]: z.string(),
+    [SheetFieldKinds.NUMBER]: z.number().or(z.coerce.number()),
+    [SheetFieldKinds.DATETIME]: z.date(),
+    [SheetFieldKinds.BOOLEAN]: z.boolean(),
+
+} as const
+
+export type SheetField = {
     name: string;
-    validator: T;
+    kind: keyof typeof SheetFieldKinds;
     mapsTo: keyof typeof SheetCols;
     isDeleted?: boolean;
 };
 
 
-const defaultFields = [
-    { name: 'createdAt', validator: SheetTypes.DATETIME, mapsTo: SheetCols.A, isDeleted: false },
-    { name: 'updatedAt', validator: SheetTypes.DATETIME.nullable(), mapsTo: SheetCols.B, isDeleted: false },
-    { name: 'deletedAt', validator: SheetTypes.DATETIME.nullable(), mapsTo: SheetCols.C, isDeleted: false },
+export const defaultFields = [
+    { name: 'createdAt', kind: SheetFieldKinds.DATETIME, mapsTo: SheetCols.A, isDeleted: false },
+    { name: 'updatedAt', kind: SheetFieldKinds.DATETIME, mapsTo: SheetCols.B, isDeleted: false },
+    { name: 'deletedAt', kind: SheetFieldKinds.DATETIME, mapsTo: SheetCols.C, isDeleted: false },
 ] as const
 
 export type DefaultSheetField = (typeof defaultFields)[number]
 
-type SchemaToType<T extends readonly SheetField<any>[]> = {
-    [K in T[number]as K["isDeleted"] extends true ? never : K["name"]]:
-    K["validator"] extends z.ZodType<infer V> ? V : never;
+type SheetFieldKindToType<SheetFieldKind> =
+    SheetFieldKind extends "STRING" ? string :
+    SheetFieldKind extends "NUMBER" ? number :
+    SheetFieldKind extends "DATETIME" ? Date :
+    SheetFieldKind extends "BOOLEAN" ? boolean :
+    never;
+
+type ScheetFieldsToType<T extends readonly SheetField[]> = {
+    [Field in T[number]as Field["isDeleted"] extends true ? never : Field["name"]]:
+    SheetFieldKindToType<Field["kind"]>;
 };
 
 type ReservedKeys = typeof defaultFields[number]["name"]
 
-export type InsertInput<T extends readonly SheetField<any>[]> = Omit<SchemaToType<T>, ReservedKeys>;
-export type UpdateInput<T extends readonly SheetField<any>[]> = Partial<Omit<SchemaToType<T>, ReservedKeys>>;
+export type InsertInput<T extends readonly SheetField[]> = Omit<ScheetFieldsToType<T>, ReservedKeys>;
+export type UpdateInput<T extends readonly SheetField[]> = Partial<Omit<ScheetFieldsToType<T>, ReservedKeys>>;
 export type GetOneOptions = { returnSoftDeleted?: boolean }
 
-// Define allowed operators based on type
-type BaseOperator<T> = { isNull?: boolean; isNotNull?: boolean; eq?: T; neq?: T }
-type NumberOperators = BaseOperator<number> & { gt?: number; lt?: number; gte?: number; lte?: number };
-type StringOperators = BaseOperator<string> & { contains?: string; like?: string; startsWith?: string; endsWith?: string };
-type DateOperators = BaseOperator<Date> & { before?: Date; after?: Date; };
-type BooleanOperators = BaseOperator<boolean> & {};
-
-// Map Zod types to allowed query operators
-type OperatorsForType<T> =
-    T extends string ? StringOperators :
-    T extends number ? NumberOperators :
-    T extends Date ? DateOperators :
-    T extends boolean ? BooleanOperators :
-    never;
-
-
-type SchemaToFilters<T extends readonly SheetField<any>[]> = {
-    [K in T[number]as K["isDeleted"] extends true ? never : K["name"]]:
-    K["validator"] extends z.ZodType<infer V>
-    ? OperatorsForType<V>
-    : never;
-};
-
-type DefaultFilters = SchemaToFilters<typeof defaultFields>;
-// Support for AND/OR logical expressions
-type QueryExpression<T extends readonly SheetField<any>[]> =
-    | { AND?: QueryInput<T>[] }
-    | { OR?: QueryInput<T>[] };
-
-// Define QueryInput to allow filtering with logical expressions
-export type QueryInput<T extends readonly SheetField<any>[]> =
-    Partial<SchemaToFilters<T>>
-    & Partial<DefaultFilters>
-    & QueryExpression<T>;
-
-
-export class Model<T extends readonly SheetField<any>[]> {
+export class Model<T extends readonly SheetField[]> {
     private schema: readonly [...typeof defaultFields, ...T];
     private client: google.Auth.OAuth2Client;
     private sheetId: string;
@@ -170,8 +151,9 @@ export class Model<T extends readonly SheetField<any>[]> {
         let serializedData: any[] = []
         for (const field of this.schema) {
             if (field.name in data) {
-                const parsed = field.validator.parse(data[field.name as keyof typeof data])
-                const serialized = this.serializeValue(parsed, field.validator)
+                const validator = sheetFieldKindToValidator[field.kind]
+                const parsed = validator.parse(data[field.name])
+                const serialized = this.serializeValue(parsed, validator)
                 serializedData.push(serialized);
             }
             else {
@@ -190,7 +172,8 @@ export class Model<T extends readonly SheetField<any>[]> {
             .map((f, idx) => [f, idx] as const)
             .filter(([f, _]) => !f.isDeleted)
             .map(([f, idx]) => {
-                const v = this.deserializeValue(values[idx], f.validator)
+                const validator = sheetFieldKindToValidator[f.kind]
+                const v = this.deserializeValue(values[idx], validator)
                 return [f.name, v]
             })
         return Object.fromEntries(entries)
@@ -263,7 +246,7 @@ export class Model<T extends readonly SheetField<any>[]> {
         return true
     }
 
-    async getOne(id: string, options?: GetOneOptions): Promise<SchemaToType<T> | null> {
+    async getOne(id: string, options?: GetOneOptions): Promise<ScheetFieldsToType<T> | null> {
         const res = await this.sheets().values.get({
             spreadsheetId: this.sheetId,
             range: `${id}:${id}`,
@@ -295,7 +278,11 @@ export class Model<T extends readonly SheetField<any>[]> {
         return true
     }
 
-    async findMany(query: QueryInput<T>): Promise<SchemaToType<T>[]> {
+    async findMany(query: FindManyArgs<T>): Promise<ScheetFieldsToType<T>[]> {
+        const res = parseQuery(query, this.schema)
+        console.log(res)
+
+        return []
         const queryText = `SELECT * WHERE E = 'Ahmed'`
         // const queryText = `SELECT * WHERE H = TRUE`
         // const queryText = `SELECT * WHERE F = 30`
