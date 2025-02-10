@@ -1,13 +1,13 @@
-import { defaultFields, DefaultSheetField, SheetCols, SheetField } from "../schema";
+import { defaultFields, SheetCols, SheetField } from "../schema";
 import { jsDateToSheetDateStr } from "../utils";
 
 
 // Define allowed operators based on type
-export type BaseOperator<T> = { isNull?: boolean; isNotNull?: boolean; eq?: T; neq?: T }
-export type NumberOperators = BaseOperator<number> & { gt?: number; lt?: number; gte?: number; lte?: number };
-export type StringOperators = BaseOperator<string> & { contains?: string; like?: string; startsWith?: string; endsWith?: string };
-export type DateOperators = BaseOperator<Date> & { before?: Date; after?: Date; };
-export type BooleanOperators = BaseOperator<boolean> & {};
+type BaseOperator<T> = { isNull?: boolean; isNotNull?: boolean; eq?: T; neq?: T }
+type NumberOperators = BaseOperator<number> & { gt?: number; lt?: number; gte?: number; lte?: number };
+type StringOperators = BaseOperator<string> & { contains?: string; like?: string; startsWith?: string; endsWith?: string };
+type DateOperators = BaseOperator<Date> & { before?: Date; after?: Date; };
+type BooleanOperators = BaseOperator<boolean> & {};
 
 type SheetFieldKindToOperators<SheetFieldKind> =
     SheetFieldKind extends "STRING" ? StringOperators :
