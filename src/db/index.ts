@@ -1,4 +1,4 @@
-import google from "googleapis"
+import google from "googleapis";
 import { Model, SheetField } from "../schema";
 
 interface ClientSheetDBOptions {
@@ -7,7 +7,6 @@ interface ClientSheetDBOptions {
 }
 
 export class ClientSheetDB {
-
     private client: google.Auth.OAuth2Client;
     private spreadsheetId: string;
     constructor(args: ClientSheetDBOptions) {

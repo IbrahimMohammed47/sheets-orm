@@ -2,10 +2,10 @@
 // import { generateAuthUrl, authUrlCallbackMiddleware } from "./auth"
 
 import { createOAuthClient } from "./auth";
-import { SheetCols, SheetFieldKinds } from "./schema";
+import { InsertInput, SheetCols, SheetFieldKinds } from "./schema";
 import { ClientSheetDB } from "./db";
-import * as dotenv from 'dotenv'
-dotenv.config()
+import * as dotenv from "dotenv";
+dotenv.config();
 // const app = express();
 
 // app.get('/', (req, res) => {
@@ -22,36 +22,55 @@ dotenv.config()
 //     res.redirect(authUrl);
 // });
 
-
 // app.listen(8080, () => {
 //     console.log('Server is running on http://localhost:3000');
 // });
 
-
 const userSchema = [
-    { name: "email", kind: SheetFieldKinds.STRING, mapsTo: SheetCols.D },
-    { name: "name", kind: SheetFieldKinds.STRING, mapsTo: SheetCols.E },
-    { name: "age", kind: SheetFieldKinds.NUMBER, mapsTo: SheetCols.F },
-    { name: "birthDate", kind: SheetFieldKinds.DATETIME, mapsTo: SheetCols.G },
-    { name: "isMarried", kind: SheetFieldKinds.BOOLEAN, mapsTo: SheetCols.H },
+    {
+        name: "email",
+        kind: SheetFieldKinds.STRING,
+        mapsTo: SheetCols.D,
+    },
+    {
+        name: "name",
+        kind: SheetFieldKinds.STRING,
+        mapsTo: SheetCols.E,
+    },
+    {
+        name: "age",
+        kind: SheetFieldKinds.NUMBER,
+        mapsTo: SheetCols.F,
+    },
+    {
+        name: "birthDate",
+        kind: SheetFieldKinds.DATETIME,
+        mapsTo: SheetCols.G,
+    },
+    {
+        name: "isMarried",
+        kind: SheetFieldKinds.BOOLEAN,
+        mapsTo: SheetCols.H,
+        isOptional: true,
+    },
 ] as const;
 
-
-; (async function () {
-    const refreshToken = process.env.REFRESH_TOKEN as string
-    const spreadsheetId = process.env.SHEET_ID as string
+(async function () {
+    const refreshToken = process.env.REFRESH_TOKEN as string;
+    const spreadsheetId = process.env.SHEET_ID as string;
     const client = createOAuthClient(refreshToken);
-    const sheetDB = new ClientSheetDB({ client, spreadsheetId })
-    const clientUserModel = sheetDB.getModel(userSchema)
+    const sheetDB = new ClientSheetDB({ client, spreadsheetId });
+    const clientUserModel = sheetDB.getModel(userSchema);
 
     // const id = await clientUserModel.insertOne({
     //     email: "h@h.com",
     //     age: 47,
     //     name: "Helal",
     //     birthDate: new Date(),
-    //     isMarried: true
-    // })
-    // console.log(id)
+    //     isMarried: undefined,
+    //     // isMarried: true,
+    // });
+    // console.log(id);
 
     // await clientUserModel.updateOne("2", {
     //     age: 22,
@@ -65,13 +84,11 @@ const userSchema = [
 
     await clientUserModel.findMany({
         filters: {
-            AND: [
-                { birthDate: { after: new Date() } },
-                { isMarried: { eq: true } },
-            ]
+            birthDate: { after: new Date("2025-02-08 19:44:43.042") },
+            // OR: [{ age: { lt: 34 } }],
         },
-        selections: ["age", "email"],
+        selections: [],
         limit: 12,
-        offset: 20
-    })
-})()
+        offset: 0,
+    });
+})();
